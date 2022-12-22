@@ -1,0 +1,10 @@
+@import '../../scss_base/starter';
+
+#playing-area {
+    @include grid($column: repeat(3, 1fr));
+}
+
+.dark {
+    background-color: black;
+    color: white;
+}
