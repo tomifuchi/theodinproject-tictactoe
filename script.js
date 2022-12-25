@@ -249,7 +249,35 @@ const Player = function(name) {
 //Example: [[0,1],[0,2],[1,2]] Or some shit like that
 //Assumed the position are valid move that mean it's not out of bound or duplicated, or 
 //Other player are in that position.
+
+//Yep it works, but this is the most inefficient way to check, but it works HAHAHA
 function checkWinner(player_position, nMoveToWin, dim){
+
+    //Vector addition, example: [1,2] + [3,4] = [4, 6] 
+    function vAdd(...V) {
+        return  V.reduce(
+            (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
+        );
+    }
+
+    //Scalar multiplication of vector
+    function vScalarMultiply(c,v) {
+        return v.map((x) => c * x);
+    }
+
+    //Check if tar is in position_arr
+    function isPosPresent(position_arr, target){
+        return (player_position.findIndex((elm) => isVEq(elm,target)) != -1);
+    }
+
+    //Check if 2 vector is equal or the same.
+    function isVEq(v1,v2) {
+        return v1.every((x, i) => x == v2[i]);
+    }
+
+    function checkBound(x, y){
+        return (x >= 0) && (x <= dim -1) && (y >=0) && (y <= dim-1);
+    }
 
 /*
 Idea on the pattern checking algorithm
@@ -274,47 +302,97 @@ If no winning pattern is found then continue the game as usual
 
 //The other direction we can get it by invert this vector, or multiply by -1
 //-vector is also called inverse element of x
-const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
+    let isWinnner = false;
+    const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
 
-player_position.forEach((move) => {
-        //Check forward
-        directionVector.forEach( (direction) => {
-            const nextMove = vAdd(move, direction);
-            const prevMove = vAdd(move, vScalarMultiply(-1,direction));
-        });
-    });
+    for(let i = 0; i < player_position.length; i++){
+        console.log('Current move');
+        console.log(player_position[i]);
 
-    //Vector addition, example: [1,2] + [3,4] = [4, 6] 
-    function vAdd(...V) {
-        return  V.reduce(
-            (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
-        );
+            for(let a = 0;a < directionVector.length;a++){
+                console.log('Current Direction for the MOVE!');
+                let nMove = 1;
+                for(let nextMove = vAdd(player_position[i],directionVector[a]);isPosPresent(player_position, nextMove) && nMove < nMoveToWin; nextMove = vAdd(nextMove, directionVector[a])){
+                    console.log('NextMOve');
+                    console.log(nextMove);
+                    console.log('Direction');
+                    console.log(directionVector[a]);
+                    console.log('Found');
+                    nMove++;
+                }
+                for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));isPosPresent(player_position, prevMove) && nMove < nMoveToWin; prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
+                    console.log('prevMove');
+                    console.log(prevMove);
+                    console.log('Direction');
+                    console.log(vScalarMultiply(-1,directionVector[a]));
+                    console.log('Found');
+                    nMove++;
+                }
+                console.log('--------------');
+                console.log('nMove:' + nMove);
+                if(nMove >= nMoveToWin){
+                    console.log('Winner pattern from: ' + player_position[i]);
+                    isWinnner = true;
+                }
+                console.log('--------------');
+            }
     }
 
-    //Scalar multiplication of vector
-    function vScalarMultiply(c,v) {
-        return v.map((x) => c * x);
-    }
+    return isWinnner;
+}
+    /*
+    player_position.forEach((move) => {
+        console.log('Current move');
+        console.log(move);
+        let nMove = 1;
 
-    //Check if tar is in position_arr
-    function isPosPresent(position_arr, target){
-        return player_position.findIndex((elm) => isVEq(elm,target));
-    }
+            directionVector.forEach((direction) => {
+                //Check forward
+                for(let nextMove = vAdd(move,direction);isPosPresent(player_position, nextMove); nextMove = vAdd(nextMove, direction)){
+                    //console.log('NextMOve');
+                    //console.log(nextMove);
+                    //console.log('Direction');
+                    //console.log(direction);
+                    //console.log('Found');
+                    nMove++;
+                }
 
-    //Check if 2 vector is equal or the same.
-    function isVEq(v1,v2) {
-        return v1.every((x, i) => x == v2[i]);
-    }
+                //Check backward 
+                for(let prevMove = vAdd(move, vScalarMultiply(-1, direction));isPosPresent(player_position, prevMove); prevMove = vAdd(prevMove, vScalarMultiply(-1,direction))){
+                    //console.log('prevMove');
+                    //console.log(prevMove);
+                    //console.log('Direction');
+                    //console.log(vScalarMultiply(-1,direction));
+                    //console.log('Found');
+                    nMove++;
+                }
+            });
+        console.log('--------------');
+        console.log('nMove:' + nMove);
+        if(nMove >= nMoveToWin){
+            console.log('Winner pattern from: ' + move)
+            isWinnner = true;
+        }
+        console.log('--------------');
+    });*/
 
-    function checkBound(x, y){
-        return (x >= 0) && (x <= dim -1) && (y >=0) && (y <= dim-1);
-    }
 
-};
 
 
 //const john = Player('John');
 //john.move(1,2);
 //john.move(0,1);
 
-checkWinner([[1,2], [0,1], [2,2]], 3, 3);
+//console.log(checkWinner([[1,2], [2,2], [3,2], [4,2], [5,2]], 5, 3));
+console.log(checkWinner([
+    [0,0],[1,0],[-1,0],[-2,0],[-1,-1],[0,-2],[1,-3],[1,1],[-1,2],[1,3]
+]
+, 5, 3));
+
+console.log(checkWinner([
+    [-2,-2],[0,-1],[0,1],[-1,1],[-2,1],[-3,1],[-4,1],[0,2],[1,2],[0,3]
+]
+, 5, 3));
+
+
+//Testing
