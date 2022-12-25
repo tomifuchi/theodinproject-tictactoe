@@ -244,9 +244,77 @@ const Player = function(name) {
     );
 }
 
-function checkWinner(){
+//Input player position and the board dimension, out spit if they win or not. True of false
+//Player position which is this
+//Example: [[0,1],[0,2],[1,2]] Or some shit like that
+//Assumed the position are valid move that mean it's not out of bound or duplicated, or 
+//Other player are in that position.
+function checkWinner(player_position, nMoveToWin, dim){
 
-}
+/*
+Idea on the pattern checking algorithm
+Check after everymove a player is made. Check the current player's position array for positions taken.
+Then use this algorithm to check for winning pattern.
 
-const john = Player('John');
-const mary = Player('Mary');
+Tic tac toe works like this. For each move
+    For each direction (Check a particular vector in a direction)
+    Addition the current postion with a vector in a particular direction
+    then look in the position is it there ? If it's not then stop checking
+    If it it's do the same then look if it's in the position. If atleast
+    3 is reach then stop. This is a winner.
+    Stop the game
+
+    Each direction vector is this starts at 0deg add 45 deg then
+    [1,0] [1, -1] [0, -1] [-1,-1] [-1, 0] [-1, 1] [0, 1]
+    Realizing you can get the other direction by invert them so unique is
+    [1, 0],[1, -1],[0,-1],[-1,-1]
+
+If no winning pattern is found then continue the game as usual
+*/
+
+//The other direction we can get it by invert this vector, or multiply by -1
+//-vector is also called inverse element of x
+const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
+
+player_position.forEach((move) => {
+        //Check forward
+        directionVector.forEach( (direction) => {
+            const nextMove = vAdd(move, direction);
+            const prevMove = vAdd(move, vScalarMultiply(-1,direction));
+        });
+    });
+
+    //Vector addition, example: [1,2] + [3,4] = [4, 6] 
+    function vAdd(...V) {
+        return  V.reduce(
+            (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
+        );
+    }
+
+    //Scalar multiplication of vector
+    function vScalarMultiply(c,v) {
+        return v.map((x) => c * x);
+    }
+
+    //Check if tar is in position_arr
+    function isPosPresent(position_arr, target){
+        return player_position.findIndex((elm) => isVEq(elm,target));
+    }
+
+    //Check if 2 vector is equal or the same.
+    function isVEq(v1,v2) {
+        return v1.every((x, i) => x == v2[i]);
+    }
+
+    function checkBound(x, y){
+        return (x >= 0) && (x <= dim -1) && (y >=0) && (y <= dim-1);
+    }
+
+};
+
+
+//const john = Player('John');
+//john.move(1,2);
+//john.move(0,1);
+
+checkWinner([[1,2], [0,1], [2,2]], 3, 3);
