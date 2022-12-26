@@ -126,10 +126,6 @@ Tic tac toe works like this. For each move
 If no winning pattern is found then continue the game as usual
 */
 
-//Ultilizing methods
-const utilMethods = {
-}
-
 //GameEventController or GEC object
 const GEC = (function () {
     //Control the flow of the game along with the display to reflect it's own state
@@ -213,7 +209,7 @@ const GameBoard = (function (dim){
     const Board = genMultiDimArr(dim);
 
     return Object.assign({},
-        {Board, nCell}
+        {Board, nCell, dim}
     );
 
 })(3);
@@ -228,16 +224,31 @@ const Player = function(name) {
         [[1,2],[0,1],[3,4]] Or some shit like that
     */
     let state = {
-        playerID: `player${nPlayer}`,
+        playerID: `Player${nPlayer}`,
         name: name,
         position: []
     };
 
     function move(x, y){
-        state.position.push([x, y]);
-        GameBoard.Board[x][y].makeMove(this.playerID);
+        if(checkBound(x,y) && checkUniqueMove(x,y)){
+            state.position.push([x, y]);
+            GameBoard.Board[x][y].makeMove(this.playerID);
+        }
+        else{
+            console.error('Out of bound play move! Or Move already made !');
+        }
+        console.log(checkWinner(state.position, 3));
     }
-    
+
+    function checkBound(x, y){
+        return (x >= 0) && (x <= GameBoard.dim -1) && (y >=0) && (y <= GameBoard.dim - 1);
+    }
+
+    //Check to see if the move is already made
+    function checkUniqueMove(x, y) {
+        return GameBoard.Board[x][y].isTick == ''; 
+    }
+
     return Object.assign(
         Object.create({move}),
         state
@@ -251,7 +262,7 @@ const Player = function(name) {
 //Other player are in that position.
 
 //Yep it works, but this is the most inefficient way to check, but it works HAHAHA
-function checkWinner(player_position, nMoveToWin, dim){
+function checkWinner(player_position, nMoveToWin){
 
     //Vector addition, example: [1,2] + [3,4] = [4, 6] 
     function vAdd(...V) {
@@ -273,10 +284,6 @@ function checkWinner(player_position, nMoveToWin, dim){
     //Check if 2 vector is equal or the same.
     function isVEq(v1,v2) {
         return v1.every((x, i) => x == v2[i]);
-    }
-
-    function checkBound(x, y){
-        return (x >= 0) && (x <= dim -1) && (y >=0) && (y <= dim-1);
     }
 
 /*
@@ -306,35 +313,29 @@ If no winning pattern is found then continue the game as usual
     const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
 
     for(let i = 0; i < player_position.length; i++){
-        console.log('Current move');
-        console.log(player_position[i]);
+        //console.log('Current move');
+        //console.log(player_position[i]);
 
             for(let a = 0;a < directionVector.length;a++){
-                console.log('Current Direction for the MOVE!');
+                //console.log('Current Direction for the MOVE!');
                 let nMove = 1;
-                for(let nextMove = vAdd(player_position[i],directionVector[a]);isPosPresent(player_position, nextMove) && nMove < nMoveToWin; nextMove = vAdd(nextMove, directionVector[a])){
-                    console.log('NextMOve');
-                    console.log(nextMove);
-                    console.log('Direction');
-                    console.log(directionVector[a]);
-                    console.log('Found');
+                for(let nextMove = vAdd(player_position[i],directionVector[a]);
+                isPosPresent(player_position, nextMove) && nMove < nMoveToWin; 
+                nextMove = vAdd(nextMove, directionVector[a])){
                     nMove++;
                 }
-                for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));isPosPresent(player_position, prevMove) && nMove < nMoveToWin; prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
-                    console.log('prevMove');
-                    console.log(prevMove);
-                    console.log('Direction');
-                    console.log(vScalarMultiply(-1,directionVector[a]));
-                    console.log('Found');
+                for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));
+                isPosPresent(player_position, prevMove) && nMove < nMoveToWin;
+                prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
                     nMove++;
                 }
-                console.log('--------------');
-                console.log('nMove:' + nMove);
+                //console.log('--------------');
+                //console.log('nMove:' + nMove);
                 if(nMove >= nMoveToWin){
-                    console.log('Winner pattern from: ' + player_position[i]);
+                    //console.log('Winner pattern from: ' + player_position[i]);
                     isWinnner = true;
                 }
-                console.log('--------------');
+                //console.log('--------------');
             }
     }
 
@@ -384,15 +385,15 @@ If no winning pattern is found then continue the game as usual
 //john.move(0,1);
 
 //console.log(checkWinner([[1,2], [2,2], [3,2], [4,2], [5,2]], 5, 3));
-console.log(checkWinner([
-    [0,0],[1,0],[-1,0],[-2,0],[-1,-1],[0,-2],[1,-3],[1,1],[-1,2],[1,3]
-]
-, 5, 3));
-
-console.log(checkWinner([
-    [-2,-2],[0,-1],[0,1],[-1,1],[-2,1],[-3,1],[-4,1],[0,2],[1,2],[0,3]
-]
-, 5, 3));
+//console.log(checkWinner([
+//    [0,0],[1,0],[-1,0],[-2,0],[-1,-1],[0,-2],[1,-3],[1,1],[-1,2],[1,3]
+//]
+//, 5, 3));
+//
+//console.log(checkWinner([
+//    [-2,-2],[0,-1],[0,1],[-1,1],[-2,1],[-3,1],[-4,1],[0,2],[1,2],[0,3]
+//]
+//, 5, 3));
 
 
 //Testing
