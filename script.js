@@ -126,10 +126,8 @@ Tic tac toe works like this. For each move
 If no winning pattern is found then continue the game as usual
 */
 
-//GameEventController or GEC object
+
 const GEC = (function () {
-    //Control the flow of the game along with the display to reflect it's own state
-})();
 
 //Display should be tuck away
 const Display = (function () {
@@ -189,13 +187,12 @@ const GameBoard = (function (dim){
         cell.domElem.style.border = '1px solid black';
         cell.domElem.style.padding = '30px';
         cell.domElem.textContent = 'Hello';
+        cell.domElem.dataset.isTick = '';
         cell.makeMove = function (playerID) {
             Display.toggleClass(cell.domElem, 'dark');
             cell.domElem.dataset.isTick = playerID;
             cell.isTick = playerID;
         }
-        //cell.domElem.onclick =  currentPlayer.move(<thiscellindex>);
-
         Display.addToDomCache(Object.fromEntries([[`playCell${nCell}`, cell.domElem]]));
         Display.pushToDOM('playing-area', cell.domElem);
 
@@ -208,6 +205,14 @@ const GameBoard = (function (dim){
 
     const Board = genMultiDimArr(dim);
 
+    //Bind click event to each cell
+    Board.forEach( (row,x) => row.forEach((cell,y) => {
+        cell.domElem.onclick =  () => {
+            const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
+            currentPlayer.move(x,y);
+        }
+    }))
+
     return Object.assign({},
         {Board, nCell, dim}
     );
@@ -218,26 +223,28 @@ let nPlayer = 0;
 const Player = function(name) {
     nPlayer++;
 
-    /*
-        Position is an array of arrays, with each of the array as 2 elements array.
-        x, y position played.
-        [[1,2],[0,1],[3,4]] Or some shit like that
-    */
     let state = {
         playerID: `Player${nPlayer}`,
         name: name,
+        score: 0,
         position: []
     };
 
     function move(x, y){
-        if(checkBound(x,y) && checkUniqueMove(x,y)){
+        if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == state.playerID){
             state.position.push([x, y]);
             GameBoard.Board[x][y].makeMove(this.playerID);
+            if(checkWinner(state.position, 3)){
+                endGame();
+            } else {
+                changeTurn();
+            }
         }
         else{
-            console.error('Out of bound play move! Or Move already made !');
+            console.error('Out of bound play move! Or Move already made ! Or not your turn !');
         }
-        console.log(checkWinner(state.position, 3));
+
+
     }
 
     function checkBound(x, y){
@@ -341,6 +348,104 @@ If no winning pattern is found then continue the game as usual
 
     return isWinnner;
 }
+
+function endGame() {
+    const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
+    currentPlayer.score++;
+    console.log(playerTurn + ' Is the Winner !');
+    reset();
+}
+
+function reset() {
+    //Reset the gameBoard
+    GameBoard.Board.forEach((row) => row.forEach(cell => {
+        cell.isTick = '';
+        cell.domElem.dataset.isTick = '';
+        cell.domElem.classList.remove('dark');
+    }));
+
+    //Reset the player's position array
+    p1.position.splice(0, p1.position.length);
+    p2.position.splice(0, p2.position.length);
+
+    //Reset the turn
+    playerTurn = p1.playerID;
+}
+
+const p1 = Player('John');
+const p2 = Player('Mary');
+
+let playerTurn = p1.playerID;
+function changeTurn() {
+    playerTurn = (playerTurn == p1.playerID)? p2.playerID:p1.playerID;
+}
+
+function getTurn() {
+    return playerTurn;
+}
+
+function getBoard() {
+    return JSON.parse(JSON.stringify(GameBoard.Board));
+}
+
+return Object.assign({},{p1,p2, getTurn, getBoard, reset});
+})();
+
+//Algorithm for AI to move
+function aiMove(dim) {
+
+    function getRandomIntInclusive(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1) + min); // The maximum is inclusive and the minimum is inclusive
+    }
+
+
+    function isPosPresent(position_arr, target){
+        return (position_arr.findIndex((elm) => isVEq(elm,target)) != -1);
+    }
+
+    //Check if 2 vector is equal or the same.
+    function isVEq(v1,v2) {
+        return v1.every((x, i) => x == v2[i]);
+    }
+
+    let aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
+    while(isPosPresent(GEC.p1.position,aiMove))
+        aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
+
+    return aiMove;
+}
+
+//Proxy object for if the playerTurn in GEC is set we get the AI to move
+const aiMakeMove = new Proxy(GEC, {
+    get: function (target, property, value, receiver) {
+        if(property === 'p2'){
+            const move = aiMove(3);
+            GEC.p2.move(move[0],move[1]);
+        }
+    }
+});
+
+
+   // while(GEC.getTurn() != 'Player2'){
+   // //Check if tar is in position_arr
+   // function isPosPresent(position_arr, target){
+   //     return (position_arr.findIndex((elm) => isVEq(elm,target)) != -1);
+   // }
+
+   // //Check if 2 vector is equal or the same.
+   // function isVEq(v1,v2) {
+   //     return v1.every((x, i) => x == v2[i]);
+   // }
+
+   // let aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
+   // while(isPosPresent(GEC.p1.position,aiMove))
+   //     aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
+
+   // GEC.p2.move(aiMove);
+   // }
+
     /*
     player_position.forEach((move) => {
         console.log('Current move');
