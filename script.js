@@ -133,7 +133,7 @@ const GEC = (function () {
 const Display = (function () {
 
     const domCache = cacheDom(
-        'player1-name','player2-name', 'scoreboard', 'playing-area'
+        'player1-name','player2-name', 'scoreboard', 'playing-area', 'start-reset-btn','reset-stats-btn','player-turn'
     );
 
     //Returns an object with each entry is ID: cached ID dom Element
@@ -156,13 +156,21 @@ const Display = (function () {
     //Since it's text based, we are going to need alot of textContent displaying to dom
     //Maysubject to change
     function updateDOMText(elem, data) {
-        elem.textContent = data;
+        domCache[elem].textContent = data;
     }
 
     function toggleClass(elem, style_class) {
         elem.classList.toggle(style_class);
     }
 
+    //Binding event to the buttons
+    domCache['start-reset-btn'].addEventListener('click', () => {
+        reset();
+    });
+
+    domCache['reset-stats-btn'].addEventListener('click', () => {
+        resetStats();
+    });
 
     return Object.assign(
         Object.create({updateDOMText, cacheDom, toggleClass, pushToDOM, addToDomCache}),
@@ -189,7 +197,7 @@ const GameBoard = (function (dim){
         cell.domElem.textContent = 'Hello';
         cell.domElem.dataset.isTick = '';
         cell.makeMove = function (playerID) {
-            Display.toggleClass(cell.domElem, 'dark');
+            Display.toggleClass(cell.domElem, (playerID == 'Player1') ? 'dark':'green');
             cell.domElem.dataset.isTick = playerID;
             cell.isTick = playerID;
         }
@@ -206,7 +214,7 @@ const GameBoard = (function (dim){
     const Board = genMultiDimArr(dim);
 
     //Bind click event to each cell
-    Board.forEach( (row,x) => row.forEach((cell,y) => {
+    Board.forEach((row,x) => row.forEach((cell,y) => {
         cell.domElem.onclick =  () => {
             const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
             currentPlayer.move(x,y);
@@ -236,7 +244,10 @@ const Player = function(name) {
             GameBoard.Board[x][y].makeMove(this.playerID);
             if(checkWinner(state.position, 3)){
                 endGame();
-            } else {
+            } else if(checkDraw()){
+                endGame(true);
+            }
+            else {
                 changeTurn();
             }
         }
@@ -349,10 +360,17 @@ If no winning pattern is found then continue the game as usual
     return isWinnner;
 }
 
-function endGame() {
-    const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
-    currentPlayer.score++;
-    console.log(playerTurn + ' Is the Winner !');
+function checkDraw() {
+    return GameBoard.Board.every(row => row.every((cell) => cell.isTick !== ''));
+}
+
+function endGame(isDraw=false) {
+    if(!isDraw){
+        const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
+        currentPlayer.score++;
+        console.log(playerTurn + ' Is the Winner !');
+        updateDisplay();
+    }
     reset();
 }
 
@@ -361,7 +379,7 @@ function reset() {
     GameBoard.Board.forEach((row) => row.forEach(cell => {
         cell.isTick = '';
         cell.domElem.dataset.isTick = '';
-        cell.domElem.classList.remove('dark');
+        cell.domElem.classList.remove('dark', 'green');
     }));
 
     //Reset the player's position array
@@ -372,12 +390,36 @@ function reset() {
     playerTurn = p1.playerID;
 }
 
+function resetStats() {
+    p1.score = 0;
+    p2.score = 0;
+    updateDisplay();
+    reset();
+}
+
 const p1 = Player('John');
 const p2 = Player('Mary');
-
 let playerTurn = p1.playerID;
+
+Display.updateDOMText('player1-name', p1.name);
+Display.updateDOMText('player2-name', p2.name);
+
+
+function updateDisplay() {
+    Display.updateDOMText('scoreboard', `${p1.name}: ${p1.score} vs ${p2.name}: ${p2.score}`);
+}
+
+function updateDisplayTurn() {
+    const currentPlayer = (playerTurn == 'Player1') ? p1:p2;
+    Display.updateDOMText('player-turn', `${currentPlayer.name}'s turn`);
+}
+
+updateDisplay();
+updateDisplayTurn();
+
 function changeTurn() {
     playerTurn = (playerTurn == p1.playerID)? p2.playerID:p1.playerID;
+    updateDisplayTurn();
 }
 
 function getTurn() {
@@ -417,7 +459,8 @@ function aiMove(dim) {
     return aiMove;
 }
 
-//Proxy object for if the playerTurn in GEC is set we get the AI to move
+//Work around to use Proxy object waiting for p2 to be invoke
+//Then make let ai make a move.
 const aiMakeMove = new Proxy(GEC, {
     get: function (target, property, value, receiver) {
         if(property === 'p2'){

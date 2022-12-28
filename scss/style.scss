@@ -4,6 +4,11 @@
     @include grid($column: repeat(3, 1fr));
 }
 
+.green {
+    background-color: green;
+    color: white;
+}
+
 .dark {
     background-color: black;
     color: white;

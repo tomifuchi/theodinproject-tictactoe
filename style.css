@@ -348,6 +348,11 @@ button {
   grid-template-rows: none;
 }
 
+.green {
+  background-color: green;
+  color: white;
+}
+
 .dark {
   background-color: black;
   color: white;
