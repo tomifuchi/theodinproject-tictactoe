@@ -225,7 +225,7 @@ const GameBoard = (function (dim){
         {Board, nCell, dim}
     );
 
-})(3);
+})(10);
 
 let nPlayer = 0;
 const Player = function(name) {
@@ -242,7 +242,7 @@ const Player = function(name) {
         if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == state.playerID){
             state.position.push([x, y]);
             GameBoard.Board[x][y].makeMove(this.playerID);
-            if(checkWinner(state.position, 3)){
+            if(checkWinner(state.position, 5)){
                 endGame();
             } else if(checkDraw()){
                 endGame(true);
@@ -388,12 +388,16 @@ function reset() {
 
     //Reset the turn
     playerTurn = p1.playerID;
+    updateDisplayTurn();
 }
 
 function resetStats() {
     p1.score = 0;
     p2.score = 0;
+
+    playerTurn = p1.playerID;
     updateDisplay();
+    updateDisplayTurn();
     reset();
 }
 
@@ -412,6 +416,9 @@ function updateDisplay() {
 function updateDisplayTurn() {
     const currentPlayer = (playerTurn == 'Player1') ? p1:p2;
     Display.updateDOMText('player-turn', `${currentPlayer.name}'s turn`);
+}
+
+function updateGameProgress() {
 }
 
 updateDisplay();
