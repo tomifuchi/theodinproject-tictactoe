@@ -2,6 +2,14 @@
 
 #playing-area {
     @include grid($column: repeat(10, 1fr));
+    text-align: center;
+
+    > * {
+        @include flex($justify: center, $align: center);
+        border: 1px solid black;
+        height: 1rem;  
+        padding: 30px;
+    }
 }
 
 .green {
@@ -12,4 +20,13 @@
 .dark {
     background-color: black;
     color: white;
+}
+
+.hide {
+    display: none;
+}
+
+.yellow {
+    background-color: yellow;
+    color: red;
 }

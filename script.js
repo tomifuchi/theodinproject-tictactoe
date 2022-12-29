@@ -133,7 +133,7 @@ const GEC = (function () {
 const Display = (function () {
 
     const domCache = cacheDom(
-        'player1-name','player2-name', 'scoreboard', 'playing-area', 'start-reset-btn','reset-stats-btn','player-turn'
+        'player1-name','player2-name', 'scoreboard', 'playing-area', 'start-reset-btn','reset-stats-btn','player-turn','toggle-ai','continue'
     );
 
     //Returns an object with each entry is ID: cached ID dom Element
@@ -172,8 +172,77 @@ const Display = (function () {
         resetStats();
     });
 
+    domCache['toggle-ai'].addEventListener('click', () => {
+        domCache['toggle-ai'].textContent = (domCache['toggle-ai'].textContent == 'Off') ? 'On':'Off';
+        isSingplePlayer = (domCache['toggle-ai'].textContent == 'Off') ? false:true;
+    });
+
+    domCache['continue'].addEventListener('click', continueGame);
+
+
+
+    function highLightWinning(player_position, nMoveToWin){
+        function searchWinningMove() {
+            const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
+
+            for(let i = 0; i < player_position.length; i++){
+                for(let a = 0;a < directionVector.length;a++){
+                    let nMove = 1;
+                    let winningMove = [];
+                    winningMove.push(player_position[i]);
+                    for(let nextMove = vAdd(player_position[i],directionVector[a]);
+                    isPosPresent(player_position, nextMove) && nMove < nMoveToWin; 
+                    nextMove = vAdd(nextMove, directionVector[a])){
+                        nMove++;
+                        winningMove.push(nextMove);
+                    }
+                    for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));
+                    isPosPresent(player_position, prevMove) && nMove < nMoveToWin;
+                    prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
+                        nMove++;
+                        winningMove.push(prevMove);
+                    }
+                    if(nMove >= nMoveToWin){
+                        isWinnner = true;
+                        return winningMove;
+                    }
+                }
+            }
+        }
+        //Search for winning move
+        //Vector addition, example: [1,2] + [3,4] = [4, 6] 
+        function vAdd(...V) {
+            return  V.reduce(
+                (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
+            );
+        }
+
+        //Scalar multiplication of vector
+        function vScalarMultiply(c,v) {
+            return v.map((x) => c * x);
+        }
+
+        //Check if tar is in position_arr
+        function isPosPresent(position_arr, target){
+            return (player_position.findIndex((elm) => isVEq(elm,target)) != -1);
+        }
+
+        //Check if 2 vector is equal or the same.
+        function isVEq(v1,v2) {
+            return v1.every((x, i) => x == v2[i]);
+        }
+
+        searchWinningMove().forEach((move) => {
+            console.log(move);
+            GameBoard.Board[move[0]][move[1]].domElem.classList.remove('black', 'green');
+            Display.toggleClass(GameBoard.Board[move[0]][move[1]].domElem,'yellow');
+        });
+
+        return searchWinningMove();
+    }
+
     return Object.assign(
-        Object.create({updateDOMText, cacheDom, toggleClass, pushToDOM, addToDomCache}),
+        Object.create({updateDOMText, cacheDom, toggleClass, pushToDOM, addToDomCache, highLightWinning}),
         {domCache}
     );
 
@@ -192,12 +261,10 @@ const GameBoard = (function (dim){
         };
 
         cell.domElem = document.createElement('div');
-        cell.domElem.style.border = '1px solid black';
-        cell.domElem.style.padding = '30px';
-        cell.domElem.textContent = 'Hello';
         cell.domElem.dataset.isTick = '';
         cell.makeMove = function (playerID) {
             Display.toggleClass(cell.domElem, (playerID == 'Player1') ? 'dark':'green');
+            cell.domElem.textContent = (playerID == 'Player1') ? 'O':'X';
             cell.domElem.dataset.isTick = playerID;
             cell.isTick = playerID;
         }
@@ -228,6 +295,8 @@ const GameBoard = (function (dim){
 })(10);
 
 let nPlayer = 0;
+let isSingplePlayer = false;
+let matchEnd = false;
 const Player = function(name) {
     nPlayer++;
 
@@ -239,7 +308,7 @@ const Player = function(name) {
     };
 
     function move(x, y){
-        if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == state.playerID){
+        if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == state.playerID && matchEnd == false){
             state.position.push([x, y]);
             GameBoard.Board[x][y].makeMove(this.playerID);
             if(checkWinner(state.position, 5)){
@@ -252,10 +321,16 @@ const Player = function(name) {
             }
         }
         else{
+            console.log(`checkBound: ${checkBound(x,y)}`);
+            console.log(`checkUniquemove: ${checkUniqueMove(x,y)}`);
+            console.log(`playerTurn == state.playerID: ${playerTurn}, ${state.playerID}`);
+            console.log(`Current move: [${x},${y}]`);
             console.error('Out of bound play move! Or Move already made ! Or not your turn !');
         }
-
-
+        //For AI's only
+        if(isSingplePlayer == true && playerTurn == 'Player2' && matchEnd == false){
+            aiMakeMove.p2;
+        }
     }
 
     function checkBound(x, y){
@@ -328,33 +403,26 @@ If no winning pattern is found then continue the game as usual
 //The other direction we can get it by invert this vector, or multiply by -1
 //-vector is also called inverse element of x
     let isWinnner = false;
+
     const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
 
     for(let i = 0; i < player_position.length; i++){
-        //console.log('Current move');
-        //console.log(player_position[i]);
-
-            for(let a = 0;a < directionVector.length;a++){
-                //console.log('Current Direction for the MOVE!');
-                let nMove = 1;
-                for(let nextMove = vAdd(player_position[i],directionVector[a]);
-                isPosPresent(player_position, nextMove) && nMove < nMoveToWin; 
-                nextMove = vAdd(nextMove, directionVector[a])){
-                    nMove++;
-                }
-                for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));
-                isPosPresent(player_position, prevMove) && nMove < nMoveToWin;
-                prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
-                    nMove++;
-                }
-                //console.log('--------------');
-                //console.log('nMove:' + nMove);
-                if(nMove >= nMoveToWin){
-                    //console.log('Winner pattern from: ' + player_position[i]);
-                    isWinnner = true;
-                }
-                //console.log('--------------');
+        for(let a = 0;a < directionVector.length;a++){
+            let nMove = 1;
+            for(let nextMove = vAdd(player_position[i],directionVector[a]);
+            isPosPresent(player_position, nextMove) && nMove < nMoveToWin; 
+            nextMove = vAdd(nextMove, directionVector[a])){
+                nMove++;
             }
+            for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));
+            isPosPresent(player_position, prevMove) && nMove < nMoveToWin;
+            prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
+                nMove++;
+            }
+            if(nMove >= nMoveToWin){
+                isWinnner = true;
+            }
+        }
     }
 
     return isWinnner;
@@ -365,12 +433,21 @@ function checkDraw() {
 }
 
 function endGame(isDraw=false) {
+    const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
+    matchEnd = true;
     if(!isDraw){
-        const currentPlayer = (playerTurn == 'Player1') ? p1: p2;
         currentPlayer.score++;
         console.log(playerTurn + ' Is the Winner !');
+        console.log(Display.highLightWinning(currentPlayer.position, 5));
+        Display.toggleClass(Display.domCache['continue'],'hide');
         updateDisplay();
-    }
+    }    
+    //reset();
+}
+
+function continueGame() {
+    Display.toggleClass(Display.domCache['continue'],'hide');
+    matchEnd = false
     reset();
 }
 
@@ -379,7 +456,8 @@ function reset() {
     GameBoard.Board.forEach((row) => row.forEach(cell => {
         cell.isTick = '';
         cell.domElem.dataset.isTick = '';
-        cell.domElem.classList.remove('dark', 'green');
+        cell.domElem.classList.remove('dark', 'green', 'yellow');
+        cell.domElem.textContent = '';
     }));
 
     //Reset the player's position array
@@ -440,7 +518,7 @@ function getBoard() {
 return Object.assign({},{p1,p2, getTurn, getBoard, reset});
 })();
 
-//Algorithm for AI to move
+//Algorithm for AI to move for now its random
 function aiMove(dim) {
 
     function getRandomIntInclusive(min, max) {
@@ -459,9 +537,10 @@ function aiMove(dim) {
         return v1.every((x, i) => x == v2[i]);
     }
 
-    let aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
-    while(isPosPresent(GEC.p1.position,aiMove))
-        aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
+    //Keep generating until not match both in itself and my move
+    let aiMove = [getRandomIntInclusive(0,dim-1), getRandomIntInclusive(0,dim-1)];
+    while(isPosPresent(GEC.p1.position,aiMove) || isPosPresent(GEC.p2.position, aiMove))
+        aiMove = [getRandomIntInclusive(0,dim-1), getRandomIntInclusive(0,dim-1)];
 
     return aiMove;
 }
@@ -471,84 +550,9 @@ function aiMove(dim) {
 const aiMakeMove = new Proxy(GEC, {
     get: function (target, property, value, receiver) {
         if(property === 'p2'){
-            const move = aiMove(3);
+            const move = aiMove(10);
+            console.log(`AI move: ${move}`);
             GEC.p2.move(move[0],move[1]);
         }
     }
 });
-
-
-   // while(GEC.getTurn() != 'Player2'){
-   // //Check if tar is in position_arr
-   // function isPosPresent(position_arr, target){
-   //     return (position_arr.findIndex((elm) => isVEq(elm,target)) != -1);
-   // }
-
-   // //Check if 2 vector is equal or the same.
-   // function isVEq(v1,v2) {
-   //     return v1.every((x, i) => x == v2[i]);
-   // }
-
-   // let aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
-   // while(isPosPresent(GEC.p1.position,aiMove))
-   //     aiMove = [getRandomIntInclusive(0,2), getRandomIntInclusive(0,2)];
-
-   // GEC.p2.move(aiMove);
-   // }
-
-    /*
-    player_position.forEach((move) => {
-        console.log('Current move');
-        console.log(move);
-        let nMove = 1;
-
-            directionVector.forEach((direction) => {
-                //Check forward
-                for(let nextMove = vAdd(move,direction);isPosPresent(player_position, nextMove); nextMove = vAdd(nextMove, direction)){
-                    //console.log('NextMOve');
-                    //console.log(nextMove);
-                    //console.log('Direction');
-                    //console.log(direction);
-                    //console.log('Found');
-                    nMove++;
-                }
-
-                //Check backward 
-                for(let prevMove = vAdd(move, vScalarMultiply(-1, direction));isPosPresent(player_position, prevMove); prevMove = vAdd(prevMove, vScalarMultiply(-1,direction))){
-                    //console.log('prevMove');
-                    //console.log(prevMove);
-                    //console.log('Direction');
-                    //console.log(vScalarMultiply(-1,direction));
-                    //console.log('Found');
-                    nMove++;
-                }
-            });
-        console.log('--------------');
-        console.log('nMove:' + nMove);
-        if(nMove >= nMoveToWin){
-            console.log('Winner pattern from: ' + move)
-            isWinnner = true;
-        }
-        console.log('--------------');
-    });*/
-
-
-
-
-//const john = Player('John');
-//john.move(1,2);
-//john.move(0,1);
-
-//console.log(checkWinner([[1,2], [2,2], [3,2], [4,2], [5,2]], 5, 3));
-//console.log(checkWinner([
-//    [0,0],[1,0],[-1,0],[-2,0],[-1,-1],[0,-2],[1,-3],[1,1],[-1,2],[1,3]
-//]
-//, 5, 3));
-//
-//console.log(checkWinner([
-//    [-2,-2],[0,-1],[0,1],[-1,1],[-2,1],[-3,1],[-4,1],[0,2],[1,2],[0,3]
-//]
-//, 5, 3));
-
-
-//Testing

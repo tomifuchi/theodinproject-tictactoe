@@ -346,6 +346,17 @@ button {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: none;
+  text-align: center;
+}
+#playing-area > * {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+  height: 1rem;
+  padding: 30px;
 }
 
 .green {
@@ -356,6 +367,15 @@ button {
 .dark {
   background-color: black;
   color: white;
+}
+
+.hide {
+  display: none;
+}
+
+.yellow {
+  background-color: yellow;
+  color: red;
 }
 
 /*# sourceMappingURL=style.css.map */
