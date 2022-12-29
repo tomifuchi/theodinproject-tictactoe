@@ -438,6 +438,11 @@ function endGame(isDraw=false) {
     if(!isDraw){
         currentPlayer.score++;
         console.log(playerTurn + ' Is the Winner !');
+        Display.domCache['player-turn'].textContent = `${currentPlayer.name} wins!`;
+
+        Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
+        Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
+        Display.domCache['player-turn'].textContent = `${currentPlayer.name} Wins!`
         console.log(Display.highLightWinning(currentPlayer.position, 5));
         Display.toggleClass(Display.domCache['continue'],'hide');
         updateDisplay();
@@ -447,6 +452,9 @@ function endGame(isDraw=false) {
 
 function continueGame() {
     Display.toggleClass(Display.domCache['continue'],'hide');
+    Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
+    Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
+ 
     matchEnd = false
     reset();
 }
