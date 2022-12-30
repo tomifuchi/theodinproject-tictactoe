@@ -170,10 +170,10 @@ const patternFinding = (function () {
 
         for(let i = 0; i < player_position.length; i++){
             //Push the first move in
-            let winningMove = [];
-            winningMove.push(player_position[i]);
-
             for(let a = 0;a < directionVector.length;a++){
+                let winningMove = [];
+                winningMove.push(player_position[i]);
+
                 for(let nextMove = vectorFunc.vAdd(player_position[i],directionVector[a]);
                 ultiFunc.isPosPresent(player_position, nextMove) && winningMove.length < nMoveToWin; 
                 nextMove = vectorFunc.vAdd(nextMove, directionVector[a])){
@@ -196,12 +196,11 @@ const patternFinding = (function () {
     }
 
     function isAWinner(player_position, nMoveToWin) {
-        return searchWinningMove(player_position, nMoveToWin).length > 0;
+        return searchWinningMove(player_position, nMoveToWin).length >= nMoveToWin;
     }
 
     return Object.create({searchWinningMove, isAWinner});
 })();
-
 
 //Display should be tuck away
 const Display = (function () {
@@ -247,10 +246,7 @@ const Display = (function () {
         resetStats();
     });
 
-    domCache['toggle-ai'].addEventListener('click', () => {
-        updateDOMText(domCache['toggle-ai'], (domCache['toggle-ai'].textContent == 'Off') ? 'On':'Off');
-        isSingplePlayer = (domCache['toggle-ai'].textContent == 'Off') ? false:true;
-    });
+    domCache['toggle-ai'].addEventListener('click', toggleSinglePlayer);
 
     domCache['continue'].addEventListener('click', continueGame);
 
@@ -274,8 +270,6 @@ const GameBoard = (function (dim){
     let nCell = 0;
 
     function makeMove(playerID){
-        console.log('Here');
-        console.log(this);
         Display.toggleClass(this.domElem, (playerID == 'Player1') ? 'dark':'green');
         this.domElem.textContent = (playerID == 'Player1') ? 'O':'X';
         this.domElem.dataset.isTick = playerID;
@@ -326,6 +320,8 @@ let matchEnd = false;
 
 function toggleSinglePlayer() {
     isSingplePlayer = (isSingplePlayer == false) ? true: false;
+    Display.updateDOMText('toggle-ai', (isSingplePlayer == false) ? 'Off':'On');
+    console.log(`Single Player mode: ${isSingplePlayer}`);
 }
 
 const Player = function(name) {
@@ -341,10 +337,9 @@ const Player = function(name) {
     function move(x, y){
         if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == this.playerID && matchEnd == false){
             this.position.push([x, y]);
-            console.log(GameBoard.Board[x][y]);
+            //console.log(GameBoard.Board[x][y]);
             GameBoard.makeMove.call(GameBoard.Board[x][y], this.playerID);
             if(patternFinding.isAWinner(this.position, 5)){
-                console.log(patternFinding.searchWinningMove(this.position,5));
                 endGame();
             } else if(checkDraw()){
                 endGame(true);
@@ -392,17 +387,19 @@ function endGame(isDraw=false) {
     if(!isDraw){
         currentPlayer.score++;
         console.log(playerTurn + ' Is the Winner ! Invoke continueGame() to continue playing');
-        Display.updateDOMText(Display.domCache['player-turn'],`${currentPlayer.name} Wins!`);
-
-        //Hide buttons, show continue button
-        Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
-        Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
-        Display.toggleClass(Display.domCache['continue'],'hide');
-
-        //Highlight winning pattern
+        Display.updateDOMText('player-turn',`${currentPlayer.name} Wins!`);
         Display.highLightWinning(currentPlayer.position, 5);
+        //Highlight winning pattern
         updateScoreDisplay();
-    }    
+    }
+    else {
+        console.log('Draws! Invoke continueGame() to continue playing');
+        Display.updateDOMText('player-turn','Draw!');
+    }
+    //Hide buttons, show continue button
+    Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
+    Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
+    Display.toggleClass(Display.domCache['continue'],'hide');
 }
 
 function updateScoreDisplay() {
@@ -433,7 +430,7 @@ function reset() {
     GameBoard.Board.forEach((row) => row.forEach(cell => {
         cell.isTick = '';
         cell.domElem.dataset.isTick = '';
-        Display.updateDOMText(cell.domElem, '');
+        cell.domElem.textContent = '';
         Display.removePreDefClass(cell.domElem);
     }));
 
@@ -514,7 +511,7 @@ const aiMakeMove = new Proxy(GEC, {
     get: function (target, property, value, receiver) {
         if(property === 'p2'){
             const move = aiMove(10);
-            console.log(`AI move: ${move}`);
+            //console.log(`AI move: ${move}`);
             GEC.p2.move(move[0],move[1]);
         }
     }
