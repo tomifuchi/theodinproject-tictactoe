@@ -126,8 +126,82 @@ Tic tac toe works like this. For each move
 If no winning pattern is found then continue the game as usual
 */
 
-
 const GEC = (function () {
+
+const vectorFunc = (function () {
+    //Vector addition, example: [1,2] + [3,4] = [4, 6] 
+    function vAdd(...V) {
+        return  V.reduce(
+            (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
+        );
+    }
+ 
+    //Scalar multiplication of vector
+    function vScalarMultiply(c,v) {
+        return v.map((x) => c * x);
+    }
+    //Check if 2 vector is equal or the same.
+    function isVEq(v1,v2) {
+        return v1.every((x, i) => x == v2[i]);
+    }
+
+    return Object.create({
+        vAdd, vScalarMultiply, isVEq
+    });
+
+})();
+
+const ultiFunc = (function () {
+    //Check if tar is in position_arr
+    function isPosPresent(position_arr, target){
+        return (position_arr.findIndex((elm) => vectorFunc.isVEq(elm,target)) != -1);
+    }
+
+    return Object.create({isPosPresent});
+})();
+
+const patternFinding = (function () {
+
+    //This is very simple algorithm, exhaust the moves of a move. Take
+    //A move then try to traverse in every direction possible,
+    function searchWinningMove(player_position, nMoveToWin) {
+        const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
+        const invertDiVector = directionVector.map((x) => vectorFunc.vScalarMultiply(-1, x));
+
+        for(let i = 0; i < player_position.length; i++){
+            //Push the first move in
+            let winningMove = [];
+            winningMove.push(player_position[i]);
+
+            for(let a = 0;a < directionVector.length;a++){
+                for(let nextMove = vectorFunc.vAdd(player_position[i],directionVector[a]);
+                ultiFunc.isPosPresent(player_position, nextMove) && winningMove.length < nMoveToWin; 
+                nextMove = vectorFunc.vAdd(nextMove, directionVector[a])){
+                    winningMove.push(nextMove);
+                }
+
+                for(let prevMove = vectorFunc.vAdd(player_position[i], invertDiVector[a]);
+                ultiFunc.isPosPresent(player_position, prevMove) && winningMove.length < nMoveToWin;
+                prevMove = vectorFunc.vAdd(prevMove, invertDiVector[a])){
+                    winningMove.push(prevMove);
+                }
+
+                if(winningMove.length >= nMoveToWin){
+                    return winningMove;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    function isAWinner(player_position, nMoveToWin) {
+        return searchWinningMove(player_position, nMoveToWin).length > 0;
+    }
+
+    return Object.create({searchWinningMove, isAWinner});
+})();
+
 
 //Display should be tuck away
 const Display = (function () {
@@ -135,17 +209,14 @@ const Display = (function () {
     const domCache = cacheDom(
         'player1-name','player2-name', 'scoreboard', 'playing-area', 'start-reset-btn','reset-stats-btn','player-turn','toggle-ai','continue'
     );
+    
+    const indicateClasses = ['dark', 'green','yellow'];
 
     //Returns an object with each entry is ID: cached ID dom Element
     function cacheDom(...selectorIDs){
         return Object.fromEntries(
             selectorIDs.map((elem) => [elem, document.getElementById(elem)])
         );
-    }
-
-    //Add elelement to DOM cache
-    function addToDomCache(elm){
-        Object.assign(domCache, elm);
     }
 
     //Push to DOM
@@ -163,6 +234,10 @@ const Display = (function () {
         elem.classList.toggle(style_class);
     }
 
+    function removePreDefClass(elem) {
+        elem.classList.remove(...indicateClasses);
+    }
+
     //Binding event to the buttons
     domCache['start-reset-btn'].addEventListener('click', () => {
         reset();
@@ -173,86 +248,40 @@ const Display = (function () {
     });
 
     domCache['toggle-ai'].addEventListener('click', () => {
-        domCache['toggle-ai'].textContent = (domCache['toggle-ai'].textContent == 'Off') ? 'On':'Off';
+        updateDOMText(domCache['toggle-ai'], (domCache['toggle-ai'].textContent == 'Off') ? 'On':'Off');
         isSingplePlayer = (domCache['toggle-ai'].textContent == 'Off') ? false:true;
     });
 
     domCache['continue'].addEventListener('click', continueGame);
 
-
-
     function highLightWinning(player_position, nMoveToWin){
-        function searchWinningMove() {
-            const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
-
-            for(let i = 0; i < player_position.length; i++){
-                for(let a = 0;a < directionVector.length;a++){
-                    let nMove = 1;
-                    let winningMove = [];
-                    winningMove.push(player_position[i]);
-                    for(let nextMove = vAdd(player_position[i],directionVector[a]);
-                    isPosPresent(player_position, nextMove) && nMove < nMoveToWin; 
-                    nextMove = vAdd(nextMove, directionVector[a])){
-                        nMove++;
-                        winningMove.push(nextMove);
-                    }
-                    for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));
-                    isPosPresent(player_position, prevMove) && nMove < nMoveToWin;
-                    prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
-                        nMove++;
-                        winningMove.push(prevMove);
-                    }
-                    if(nMove >= nMoveToWin){
-                        isWinnner = true;
-                        return winningMove;
-                    }
-                }
-            }
-        }
-        //Search for winning move
-        //Vector addition, example: [1,2] + [3,4] = [4, 6] 
-        function vAdd(...V) {
-            return  V.reduce(
-                (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
-            );
-        }
-
-        //Scalar multiplication of vector
-        function vScalarMultiply(c,v) {
-            return v.map((x) => c * x);
-        }
-
-        //Check if tar is in position_arr
-        function isPosPresent(position_arr, target){
-            return (player_position.findIndex((elm) => isVEq(elm,target)) != -1);
-        }
-
-        //Check if 2 vector is equal or the same.
-        function isVEq(v1,v2) {
-            return v1.every((x, i) => x == v2[i]);
-        }
-
-        searchWinningMove().forEach((move) => {
-            console.log(move);
-            GameBoard.Board[move[0]][move[1]].domElem.classList.remove('black', 'green');
+        patternFinding.searchWinningMove(player_position, nMoveToWin).forEach((move) => {
+            removePreDefClass(GameBoard.Board[move[0]][move[1]].domElem);
             Display.toggleClass(GameBoard.Board[move[0]][move[1]].domElem,'yellow');
         });
-
-        return searchWinningMove();
     }
 
     return Object.assign(
-        Object.create({updateDOMText, cacheDom, toggleClass, pushToDOM, addToDomCache, highLightWinning}),
+        Object.create({updateDOMText, cacheDom, toggleClass, pushToDOM, highLightWinning, removePreDefClass}),
         {domCache}
     );
 
 })();
 
 //Ability to set the dimension of the board of the gameboard dimxdim
-//Right now it's 3x3
 const GameBoard = (function (dim){
 
     let nCell = 0;
+
+    function makeMove(playerID){
+        console.log('Here');
+        console.log(this);
+        Display.toggleClass(this.domElem, (playerID == 'Player1') ? 'dark':'green');
+        this.domElem.textContent = (playerID == 'Player1') ? 'O':'X';
+        this.domElem.dataset.isTick = playerID;
+        this.isTick = playerID;
+    }
+
     function createCell(){
         nCell++;
         //Create element here
@@ -260,22 +289,19 @@ const GameBoard = (function (dim){
             isTick: ''
         };
 
+        //Example of Dynamic object extension
         cell.domElem = document.createElement('div');
         cell.domElem.dataset.isTick = '';
-        cell.makeMove = function (playerID) {
-            Display.toggleClass(cell.domElem, (playerID == 'Player1') ? 'dark':'green');
-            cell.domElem.textContent = (playerID == 'Player1') ? 'O':'X';
-            cell.domElem.dataset.isTick = playerID;
-            cell.isTick = playerID;
-        }
-        Display.addToDomCache(Object.fromEntries([[`playCell${nCell}`, cell.domElem]]));
-        Display.pushToDOM('playing-area', cell.domElem);
 
         return cell;
    }
 
     function genMultiDimArr(n){
-        return Array(n).fill().map((elem,index) => Array(n).fill().map(() => createCell()));
+        return Array(n).fill().map((elem,index) => Array(n).fill().map(() => {
+            const cell = createCell();
+            Display.pushToDOM('playing-area', cell.domElem);
+            return cell;
+        }));
     }
 
     const Board = genMultiDimArr(dim);
@@ -288,7 +314,7 @@ const GameBoard = (function (dim){
         }
     }))
 
-    return Object.assign({},
+    return Object.assign(Object.create({makeMove}),
         {Board, nCell, dim}
     );
 
@@ -297,6 +323,11 @@ const GameBoard = (function (dim){
 let nPlayer = 0;
 let isSingplePlayer = false;
 let matchEnd = false;
+
+function toggleSinglePlayer() {
+    isSingplePlayer = (isSingplePlayer == false) ? true: false;
+}
+
 const Player = function(name) {
     nPlayer++;
 
@@ -308,10 +339,12 @@ const Player = function(name) {
     };
 
     function move(x, y){
-        if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == state.playerID && matchEnd == false){
-            state.position.push([x, y]);
-            GameBoard.Board[x][y].makeMove(this.playerID);
-            if(checkWinner(state.position, 5)){
+        if(checkBound(x,y) && checkUniqueMove(x,y) && playerTurn == this.playerID && matchEnd == false){
+            this.position.push([x, y]);
+            console.log(GameBoard.Board[x][y]);
+            GameBoard.makeMove.call(GameBoard.Board[x][y], this.playerID);
+            if(patternFinding.isAWinner(this.position, 5)){
+                console.log(patternFinding.searchWinningMove(this.position,5));
                 endGame();
             } else if(checkDraw()){
                 endGame(true);
@@ -323,9 +356,10 @@ const Player = function(name) {
         else{
             console.log(`checkBound: ${checkBound(x,y)}`);
             console.log(`checkUniquemove: ${checkUniqueMove(x,y)}`);
-            console.log(`playerTurn == state.playerID: ${playerTurn}, ${state.playerID}`);
+            console.log(`playerTurn == state.playerID: ${playerTurn}, ${this.playerID}`);
+            console.log(`matchEnd: ${matchEnd}`);
             console.log(`Current move: [${x},${y}]`);
-            console.error('Out of bound play move! Or Move already made ! Or not your turn !');
+            console.error('Out of bound play move! Or Move already made ! Or not your turn ! Or the match is over');
         }
         //For AI's only
         if(isSingplePlayer == true && playerTurn == 'Player2' && matchEnd == false){
@@ -348,86 +382,6 @@ const Player = function(name) {
     );
 }
 
-//Input player position and the board dimension, out spit if they win or not. True of false
-//Player position which is this
-//Example: [[0,1],[0,2],[1,2]] Or some shit like that
-//Assumed the position are valid move that mean it's not out of bound or duplicated, or 
-//Other player are in that position.
-
-//Yep it works, but this is the most inefficient way to check, but it works HAHAHA
-function checkWinner(player_position, nMoveToWin){
-
-    //Vector addition, example: [1,2] + [3,4] = [4, 6] 
-    function vAdd(...V) {
-        return  V.reduce(
-            (previousValue, currentValue) => previousValue.map((x,i) => x + currentValue[i])
-        );
-    }
-
-    //Scalar multiplication of vector
-    function vScalarMultiply(c,v) {
-        return v.map((x) => c * x);
-    }
-
-    //Check if tar is in position_arr
-    function isPosPresent(position_arr, target){
-        return (player_position.findIndex((elm) => isVEq(elm,target)) != -1);
-    }
-
-    //Check if 2 vector is equal or the same.
-    function isVEq(v1,v2) {
-        return v1.every((x, i) => x == v2[i]);
-    }
-
-/*
-Idea on the pattern checking algorithm
-Check after everymove a player is made. Check the current player's position array for positions taken.
-Then use this algorithm to check for winning pattern.
-
-Tic tac toe works like this. For each move
-    For each direction (Check a particular vector in a direction)
-    Addition the current postion with a vector in a particular direction
-    then look in the position is it there ? If it's not then stop checking
-    If it it's do the same then look if it's in the position. If atleast
-    3 is reach then stop. This is a winner.
-    Stop the game
-
-    Each direction vector is this starts at 0deg add 45 deg then
-    [1,0] [1, -1] [0, -1] [-1,-1] [-1, 0] [-1, 1] [0, 1]
-    Realizing you can get the other direction by invert them so unique is
-    [1, 0],[1, -1],[0,-1],[-1,-1]
-
-If no winning pattern is found then continue the game as usual
-*/
-
-//The other direction we can get it by invert this vector, or multiply by -1
-//-vector is also called inverse element of x
-    let isWinnner = false;
-
-    const directionVector = [[1, 0] ,[1, -1], [0, -1], [-1, -1]];
-
-    for(let i = 0; i < player_position.length; i++){
-        for(let a = 0;a < directionVector.length;a++){
-            let nMove = 1;
-            for(let nextMove = vAdd(player_position[i],directionVector[a]);
-            isPosPresent(player_position, nextMove) && nMove < nMoveToWin; 
-            nextMove = vAdd(nextMove, directionVector[a])){
-                nMove++;
-            }
-            for(let prevMove = vAdd(player_position[i], vScalarMultiply(-1, directionVector[a]));
-            isPosPresent(player_position, prevMove) && nMove < nMoveToWin;
-            prevMove = vAdd(prevMove, vScalarMultiply(-1,directionVector[a]))){
-                nMove++;
-            }
-            if(nMove >= nMoveToWin){
-                isWinnner = true;
-            }
-        }
-    }
-
-    return isWinnner;
-}
-
 function checkDraw() {
     return GameBoard.Board.every(row => row.every((cell) => cell.isTick !== ''));
 }
@@ -437,35 +391,50 @@ function endGame(isDraw=false) {
     matchEnd = true;
     if(!isDraw){
         currentPlayer.score++;
-        console.log(playerTurn + ' Is the Winner !');
-        Display.domCache['player-turn'].textContent = `${currentPlayer.name} wins!`;
+        console.log(playerTurn + ' Is the Winner ! Invoke continueGame() to continue playing');
+        Display.updateDOMText(Display.domCache['player-turn'],`${currentPlayer.name} Wins!`);
 
+        //Hide buttons, show continue button
         Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
         Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
-        Display.domCache['player-turn'].textContent = `${currentPlayer.name} Wins!`
-        console.log(Display.highLightWinning(currentPlayer.position, 5));
         Display.toggleClass(Display.domCache['continue'],'hide');
-        updateDisplay();
+
+        //Highlight winning pattern
+        Display.highLightWinning(currentPlayer.position, 5);
+        updateScoreDisplay();
     }    
-    //reset();
+}
+
+function updateScoreDisplay() {
+    Display.updateDOMText('scoreboard', `${p1.name}: ${p1.score} vs ${p2.name}: ${p2.score}`);
+}
+
+function updateDisplayTurn() {
+    const currentPlayer = (playerTurn == 'Player1') ? p1:p2;
+    Display.updateDOMText('player-turn', `${currentPlayer.name}'s turn`);
 }
 
 function continueGame() {
-    Display.toggleClass(Display.domCache['continue'],'hide');
-    Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
-    Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
+    if(matchEnd){
+        //Show reset buttons, hide continue
+        Display.toggleClass(Display.domCache['continue'],'hide');
+        Display.toggleClass(Display.domCache['start-reset-btn'], 'hide');
+        Display.toggleClass(Display.domCache['reset-stats-btn'], 'hide');
  
-    matchEnd = false
-    reset();
+        matchEnd = false;
+        reset();
+    } else
+        console.warn('Only evoke this method after the game is over ! To continue playing.');
 }
+
 
 function reset() {
     //Reset the gameBoard
     GameBoard.Board.forEach((row) => row.forEach(cell => {
         cell.isTick = '';
         cell.domElem.dataset.isTick = '';
-        cell.domElem.classList.remove('dark', 'green', 'yellow');
-        cell.domElem.textContent = '';
+        Display.updateDOMText(cell.domElem, '');
+        Display.removePreDefClass(cell.domElem);
     }));
 
     //Reset the player's position array
@@ -480,13 +449,12 @@ function reset() {
 function resetStats() {
     p1.score = 0;
     p2.score = 0;
+    updateScoreDisplay();
 
-    playerTurn = p1.playerID;
-    updateDisplay();
-    updateDisplayTurn();
     reset();
 }
 
+//Initialization
 const p1 = Player('John');
 const p2 = Player('Mary');
 let playerTurn = p1.playerID;
@@ -494,20 +462,7 @@ let playerTurn = p1.playerID;
 Display.updateDOMText('player1-name', p1.name);
 Display.updateDOMText('player2-name', p2.name);
 
-
-function updateDisplay() {
-    Display.updateDOMText('scoreboard', `${p1.name}: ${p1.score} vs ${p2.name}: ${p2.score}`);
-}
-
-function updateDisplayTurn() {
-    const currentPlayer = (playerTurn == 'Player1') ? p1:p2;
-    Display.updateDOMText('player-turn', `${currentPlayer.name}'s turn`);
-}
-
-function updateGameProgress() {
-}
-
-updateDisplay();
+updateScoreDisplay();
 updateDisplayTurn();
 
 function changeTurn() {
@@ -523,7 +478,7 @@ function getBoard() {
     return JSON.parse(JSON.stringify(GameBoard.Board));
 }
 
-return Object.assign({},{p1,p2, getTurn, getBoard, reset});
+return Object.assign({},{p1,p2, getTurn, getBoard, reset, resetStats, continueGame, toggleSinglePlayer});
 })();
 
 //Algorithm for AI to move for now its random
